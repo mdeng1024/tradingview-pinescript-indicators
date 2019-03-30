@@ -1,0 +1,46 @@
+//@version=3
+// Johne Ehlers' LowPass filter
+study("John Ehlers' LowPass", shorttitle="Ehlers' LowPass", overlay=true)
+
+src = input(close, title="Source")
+len = input(50, title="Length")
+sign = input(true, title="Show Trade Signal")
+
+// LowPass starts
+a = 2/(1+len)
+lp = 0.0
+lp := (a-0.25*a*a)*src
+     + 0.5*a*a*src[1]
+     - (a-0.75*a*a)*src[2]
+     + 2*(1-a)*nz(lp[1])
+     - (1-a)*(1-a)*nz(lp[2])
+lag = 0.0
+lag := 2.0*lp - nz(lp[2])
+
+plot(lp, color=red, linewidth=1, title="LP")
+plot(lag, color=blue, linewidth=1, title="LP-Trigger")
+
+// plot reference SMA
+plot(sma(src, len), color=red, linewidth=2, title="SMA")
+
+// plot range band (fixed Bollinger)
+ma = sma(src, 20)
+dev = stdev(src, 20)
+up = ma + 2 * dev
+dn = ma - 2 * dev
+upPlot = plot(up, color=#128484, title="BBand-Up")
+lowPlot = plot(dn, color=#128484, title="BBand-Low")
+fill(upPlot, lowPlot, color=#128484, transp=95)
+
+// plot buy/sell signal
+peak(src) =>
+    src[2] < src[1] and src[1] > src
+
+valey(src) =>
+    src[2] > src[1] and src[1] < src
+
+peaks = sign? peak(lp): false
+valleys = sign? valey(lp): false
+        
+plotshape(peaks? up + 0.2 * dev : na, color=red, style=shape.triangledown, size=size.auto, location=location.absolute, text="Sell")
+plotshape(valleys? dn - 0.2 * dev : na, color=green, style=shape.triangleup, size=size.auto, location=location.absolute, text="Buy")

@@ -1,0 +1,49 @@
+//@version=3
+// John Ehlers' Bandpass filter with ACG applied
+study("John Ehlers' BandPass", shorttitle="BandPass")
+
+src = input(title="Source", type=source, defval=hl2)
+length = input(title="Length", type=integer, minval=1, defval=20)
+bw = input(title="Bandwidth", type=float, defval=0.3, step=0.1, minval=0.1, maxval=1)
+fa = input(title="Fill Area", type=bool, defval=false)
+
+
+pi = 3.14159
+// highpass filter cyclic components whose period are shorter than length bars
+a2 = (cos(0.25 * bw * 2 * pi / length) + sin(0.25 * bw * 2 * pi / length) - 1) /
+     cos(0.25 * bw * 2 * pi / length)
+hp = 0.0
+hp := (1 + a2 / 2) * (src - nz(src[1])) + (1 - a2)* nz(hp[1])
+
+// caculate BandPass
+b1 = cos(2 * pi / length)
+g1 = 1. / cos(2 * pi * bw / length)
+a1 = g1 - sqrt(g1 * g1 - 1)
+bp = 0.0
+bp := 0.5 * (1 - a1) * (hp - nz(hp[2])) + b1 * (1 + a1) * nz(bp[1]) - a1 * nz(bp[2])
+
+// apply AGC 
+peak = 0.0
+peak := 0.991 * nz(peak[1])
+peak := abs(bp) > peak? peak := abs(bp): peak
+signal = 0.0
+signal := peak != 0? bp/peak: 0.0
+
+// create a leading trigger signal 
+al2 = (cos(1.5 * bw * 2 * pi / length) + sin(1.5 * bw * 2 * pi / length) - 1) /
+     cos(1.5 * bw * 2 * pi / length)
+trigger = 0.0
+trigger := (1 + al2 / 2) * (signal - nz(signal[1])) + (1 - al2) * nz(trigger[1])
+
+// plot level lines
+hline(0, title="Zero Level", color=#989898)
+hline(0.7, title="Overbought", linestyle=dotted, color=gray)
+hline(-0.7, title="Oversold", linestyle=dotted, color=gray)
+
+ps = plot(signal, color=green, linewidth=1, title="Signal")
+pt = plot(trigger, color=red, linewidth=2, title="trigger")
+
+// borrowed idea of conditional filling the area from lazybear
+duml=plot(fa?(signal > trigger? signal: trigger):na, style=circles, linewidth=0, color=gray, title="Dummy")
+fill(pt, duml, color=lime, transp=50, title="fillBuy")
+fill(ps, duml, color=red, transp=50, title="fillSell")

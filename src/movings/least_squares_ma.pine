@@ -1,0 +1,52 @@
+//@version=3
+// Copyright (c) 2018-present, Michael Deng (mdeng1024)
+// Least Squares Moving Average based strategy
+study("Least Squares Moving Average", shorttitle="LSR MA", overlay=true)
+
+length = input(title="Length", type=integer, minval=1, defval=23)
+offset = input(title="Offset", type=integer, defval=0)
+sign = input(true, title="Show Trade Signal")
+
+src1 = close
+src2 = hl2
+
+clr = linreg(src1, length, offset)
+hl2lr = linreg(src2, length, offset)
+
+PI = 3.14159
+smooth(src, len) =>
+	arg = 1.414 * PI / len
+	a1 = exp(-arg)
+	b1 = 2 * a1 * cos(arg)
+	c2 = b1
+	c3 = -a1 * a1
+	c1 = 1 - c2 - c3
+
+	filt = 0.0
+	filt := c1 * (src + nz(src[1])) / 2 + c2 * nz(filt[1]) + c3 * nz(filt[2])
+
+smoothClr = smooth(clr, length/2)
+smoothHl2lr = smooth(hl2lr, length/2)
+
+// plot the LSQ MAs
+plot(smoothClr, title="lsma-close", linewidth=1, color=blue, transp=0)
+plot(smoothHl2lr, title="lsma-hl2", linewidth=1, color=red, transp=0)
+
+// plot reference SMA
+plot(sma(src1, 50), color=red, linewidth=2, title="SMA50")
+
+// plot range band (fixed Bollinger)
+ma = sma(src1, 20)
+dev = stdev(src1, 20)
+up = ma + 2 * dev
+dn = ma - 2 * dev
+upPlot = plot(up, color=#128484, title="BBand-Up")
+lowPlot = plot(dn, color=#128484, title="BBand-Low")
+fill(upPlot, lowPlot, color=#128484, transp=95)
+
+// plot buy/sell signal
+peaks = sign? crossunder(smoothClr, smoothHl2lr): false
+valleys = sign? crossover(smoothClr, smoothHl2lr) : false
+        
+plotshape(peaks? up + 0.2 * dev : na, color=red, style=shape.triangledown, size=size.auto, location=location.absolute, text="Sell")
+plotshape(valleys? dn - 0.2 * dev : na, color=green, style=shape.triangleup, size=size.auto, location=location.absolute, text="Buy")
