@@ -1,0 +1,67 @@
+//@version=3
+// version: 1.0.0
+// John Ehlers' Fisherized Deviation Scaled Oscillator
+// source: http://traders.com/Documentation/FEEDbk_docs/2018/10/TradersTips.html
+study("John Ehlers' Fisherized Deviation Scaled Oscillator", shorttitle="FDSO")
+
+src = input(title="Source", type=source, defval=hl2)
+length = input(title="Length", type=integer, minval=1, defval=40)
+level = input(title="Limit Level", type=integer, minval=1, defval=2)
+
+// prepare super smoother variables
+PI = 3.14159
+a1 = exp(-1.414 * PI / (0.5 * length))
+// cos takes radians value, 180 degree = 1 * PI
+b1 = 2 * a1 * cos(1.414 * PI / (0.5 * length))
+c2 = b1
+c3 = -a1 * a1
+c1 = 1 - c2 - c3
+
+//Produce Nominal zero mean with zeros in the transfer response at
+//DC and Nyquist with no spectral distortion
+//Nominally whitens the spectrum because of 6 dB per octave rolloff
+// volume weighted price
+// srvVol = src * volume
+// zeros = srvVol - srvVol[2]
+zeros = src - src[2]
+
+
+// supersmoother filter
+filt = 0.0
+filt := c1 * (zeros + zeros[1]) / 2 + c2 * nz(filt[1]) + c3 * nz(filt[2])
+
+// calculate stdev of the filter
+rms = stdev(filt, length)
+
+// rescale filter in terms of stdev
+scaledFilt = rms != 0? filt/rms: 0.0
+
+// apply fisher transform to establish real gaussian probability distribution
+// scaledFilt needs to be in the range of -1 to 1 to apply the fisher transformation,
+// so the proper way is to transfer scaledFilt to in that range first, but following 
+// will show the same result 
+fisherFilt = abs(scaledFilt) < 2? 0.5 * log((1 + scaledFilt / 2) / (1 - scaledFilt / 2)) : scaledFilt
+
+// plot level lines
+hline(0, title="Zero Level", color=#989898)
+hline(level, title="Overbought", linestyle=dotted, color=gray)
+hline(0-level, title="Oversold", linestyle=dotted, color=gray)
+
+col = fisherFilt >= level ? red: (fisherFilt <= -level ? green: blue)
+// plot(scaledFilt, color=green, linewidth=1, title="SDSO")
+plot(fisherFilt, color=col, linewidth=2, title="FDSO")
+
+
+// create buy/sell signal alter conditions
+peak(src) =>
+    src[2] < src[1] and src[1] > src
+
+valey(src) =>
+    src[2] > src[1] and src[1] < src
+
+peaks = fisherFilt > level or fisherFilt[1] > level? peak(fisherFilt): false
+valleys = fisherFilt < level or fisherFilt[1] < level? valey(fisherFilt): false
+
+// add alter conditions 
+alertcondition(valleys, title="Buy-Signal", message="FDSO has passed oversold level and valleyed, generated the potential BUY signal")
+alertcondition(peaks, title="Sell-Signal", message="FDSO has passed overbought level and peaked, generated the potential SELL signal")

@@ -1,0 +1,77 @@
+//@version=3
+// John Ehlers Super Smoother Filter 
+// based on original implementation from Alex Orekhov (everget)
+study("John Ehlers' Super Smoother Filter", shorttitle="SuperSmooth", overlay=true)
+
+src = input(title="Source", type=source, defval=hl2)
+len = input(title="Length", type=integer, minval=1, defval=50)
+pol = input(title="Number of Poles", type=integer, defval=2, options=[2, 3])
+sign = input(true, title="Show Trade Signal")
+
+PI = 3.14159
+smooth2(src, length) =>
+	arg = 1.414 * PI / length
+	a1 = exp(-arg)
+	b1 = 2 * a1 * cos(arg)
+	c2 = b1
+	c3 = -a1 * a1
+	c1 = 1 - c2 - c3
+
+	filt = 0.0
+	filt := c1 * (src + src[1]) / 2 + c2 * nz(filt[1]) + c3 * nz(filt[2])
+
+smooth3(src, length) =>
+	arg = PI / length
+	a1 = exp(-arg)
+	b1 = 2 * a1 * cos(1.738 * arg)
+	c1 = a1 * a1
+
+	coef2 = b1 + c1
+	coef3 = -(c1 + b1 * c1)
+	coef4 = c1 * c1
+	coef1 = 1 - coef2 - coef3 - coef4
+
+	filt = 0.0
+	filt := coef1 * src + coef2 * nz(filt[1]) + coef3 * nz(filt[2]) + coef4 * nz(filt[3])
+
+sf = pol == 2? smooth2(src, len) : smooth3(src, len)
+lag = 0.0
+lag := 2.0*sf - nz(sf[2])
+
+plot(sf, color=red, linewidth=1, title="Smooth")
+plot(lag, color=blue, linewidth=1, title="sf-Trigger")
+
+// plot reference SMA
+plot(sma(src, 50), color=red, linewidth=2, title="SMA50")
+
+// plot range band (fixed Bollinger)
+ma = sma(src, 20)
+dev = stdev(src, 20)
+up = ma + 2 * dev
+dn = ma - 2 * dev
+upPlot = plot(up, color=#128484, title="BBand-Up")
+lowPlot = plot(dn, color=#128484, title="BBand-Low")
+fill(upPlot, lowPlot, color=#128484, transp=95)
+
+// plot buy/sell signal
+peak(src) =>
+    src[2] < src[1] and src[1] > src
+
+valey(src) =>
+    src[2] > src[1] and src[1] < src
+
+// peaks = sign? peak(sf): false
+// valleys = sign? valey(sf): false
+peaks = sign? crossover(sf, lag): false
+valleys = sign? crossunder(sf, lag): false
+
+// add alter conditions 
+alertcondition(peaks, title="Buy-Signal", message="SuperSmooth has peaked and generated BUY signal")
+alertcondition(valleys, title="Sell-Signal", message="SuperSmooth has valleyed and generated SELL signal")
+
+// finding the lowest/highest point to plot the buy/sell indicator
+lowPoint = valleys? (dn <= low ? dn - 0.2 * dev : low - 0.2 * dev): 0.0
+highPoint = peaks? (up >= high ? up + 0.2 * dev: high + 0.2 * dev): 0.0
+
+plotshape(peaks? highPoint : na, color=red, style=shape.labeldown, location=location.absolute, text="Sell", textcolor=white)
+plotshape(valleys? lowPoint : na, color=lime, style=shape.labelup, location=location.absolute, text="Buy", textcolor=black)

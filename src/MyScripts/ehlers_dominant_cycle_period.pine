@@ -1,0 +1,472 @@
+//@version=3
+// John Ehlers' Dominant Cycle Period, coded by littlebigcrypt
+study("John Ehlers Dominant Cycle Period", shorttitle="CyclePeriod")
+
+Price=input(hl2)
+Window=input(50,maxval=50,minval=30)
+HighPassFilterPeriod=input(40,maxval=50,minval=10)
+ShowDC=input(true)
+
+PI= 3.14159
+MaxPwr=0.0
+Num=0.0
+Denom=0.0
+DominantCycle=0.0
+CosinePart=0.0
+SinePart=0.0
+Pwr=0.0
+DB=0.0
+
+//-------------------------------------------------------------------------------------
+//Get a detrended version of the data by High Pass Filtering with a 40 Period cutoff
+HP=Price
+alpha1 = (1 - sin(2*PI/HighPassFilterPeriod))/cos(2*PI/HighPassFilterPeriod) // divided by a period of 40 in degrees
+HP := .5*(1 + alpha1)*(Price - nz(Price[1])) + alpha1*nz(HP[1])
+CleanedData = (HP + 2*nz(HP[1]) + 3*nz(HP[2]) + 3*nz(HP[3]) + 2*nz(HP[4]) + nz(HP[5]))/12
+
+Pwr_8 = 0.0
+Pwr_9 = 0.0
+Pwr_10 = 0.0
+Pwr_11 = 0.0
+Pwr_12 = 0.0
+Pwr_13 = 0.0
+Pwr_14 = 0.0
+Pwr_15 = 0.0
+Pwr_16 = 0.0
+Pwr_17 = 0.0
+Pwr_18 = 0.0
+Pwr_19 = 0.0
+Pwr_20 = 0.0
+Pwr_21 = 0.0
+Pwr_22 = 0.0
+Pwr_23 = 0.0
+Pwr_24 = 0.0
+Pwr_25 = 0.0
+Pwr_26 = 0.0
+Pwr_27 = 0.0
+Pwr_28 = 0.0
+Pwr_29 = 0.0
+Pwr_30 = 0.0
+Pwr_31 = 0.0
+Pwr_32 = 0.0
+Pwr_33 = 0.0
+Pwr_34 = 0.0
+Pwr_35 = 0.0
+Pwr_36 = 0.0
+Pwr_37 = 0.0
+Pwr_38 = 0.0
+Pwr_39 = 0.0
+Pwr_40 = 0.0
+Pwr_41 = 0.0
+Pwr_42 = 0.0
+Pwr_43 = 0.0
+Pwr_44 = 0.0
+Pwr_45 = 0.0
+Pwr_46 = 0.0
+Pwr_47 = 0.0
+Pwr_48 = 0.0
+Pwr_49 = 0.0
+Pwr_50 = 0.0
+
+DB_8 = 0.0
+DB_9 = 0.0
+DB_10 = 0.0
+DB_11 = 0.0
+DB_12 = 0.0
+DB_13 = 0.0
+DB_14 = 0.0
+DB_15 = 0.0
+DB_16 = 0.0
+DB_17 = 0.0
+DB_18 = 0.0
+DB_19 = 0.0
+DB_20 = 0.0
+DB_21 = 0.0
+DB_22 = 0.0
+DB_23 = 0.0
+DB_24 = 0.0
+DB_25 = 0.0
+DB_26 = 0.0
+DB_27 = 0.0
+DB_28 = 0.0
+DB_29 = 0.0
+DB_30 = 0.0
+DB_31 = 0.0
+DB_32 = 0.0
+DB_33 = 0.0
+DB_34 = 0.0
+DB_35 = 0.0
+DB_36 = 0.0
+DB_37 = 0.0
+DB_38 = 0.0
+DB_39 = 0.0
+DB_40 = 0.0
+DB_41 = 0.0
+DB_42 = 0.0
+DB_43 = 0.0
+DB_44 = 0.0
+DB_45 = 0.0
+DB_46 = 0.0
+DB_47 = 0.0
+DB_48 = 0.0
+DB_49 = 0.0
+DB_50 = 0.0
+
+//-------------------------------------------------------------------------------------
+// POwer computation - cf. DCT algos
+MaxIdx = 0
+for Period = 8 to 50 
+    CosinePart := 0
+    SinePart := 0
+    for n = 0 to Window - 1
+        CosinePart := CosinePart + CleanedData[n]*cos(2*PI*n/Period)
+        SinePart := SinePart + CleanedData[n]*sin(2*PI*n/Period)
+    Pwr = CosinePart*CosinePart + SinePart*SinePart
+    if Pwr > MaxPwr //Find Maximum Power Level for Normalization
+        MaxPwr := Pwr
+        MaxIdx := Period
+    if Period == 8
+        Pwr_8 := Pwr
+    if Period == 9
+        Pwr_9 := Pwr
+    if Period == 10
+        Pwr_10 := Pwr
+    if Period == 11
+        Pwr_11 := Pwr
+    if Period == 12
+        Pwr_12 := Pwr
+    if Period == 13
+        Pwr_13 := Pwr
+    if Period == 14
+        Pwr_14 := Pwr
+    if Period == 15
+        Pwr_15 := Pwr
+    if Period == 16
+        Pwr_16 := Pwr
+    if Period == 17
+        Pwr_17 := Pwr
+    if Period == 18
+        Pwr_18 := Pwr
+    if Period == 19
+        Pwr_19 := Pwr
+    if Period == 20
+        Pwr_20 := Pwr
+    if Period == 21
+        Pwr_21 := Pwr
+    if Period == 22
+        Pwr_22 := Pwr
+    if Period == 23
+        Pwr_23 := Pwr
+    if Period == 24
+        Pwr_24 := Pwr
+    if Period == 25
+        Pwr_25 := Pwr
+    if Period == 26
+        Pwr_26 := Pwr
+    if Period == 27
+        Pwr_27 := Pwr
+    if Period == 28
+        Pwr_28 := Pwr
+    if Period == 29
+        Pwr_29 := Pwr
+    if Period == 30
+        Pwr_30 := Pwr
+    if Period == 31
+        Pwr_31 := Pwr
+    if Period == 32
+        Pwr_32 := Pwr
+    if Period == 33
+        Pwr_33 := Pwr
+    if Period == 34
+        Pwr_34 := Pwr
+    if Period == 35
+        Pwr_35 := Pwr
+    if Period == 36
+        Pwr_36 := Pwr
+    if Period == 37
+        Pwr_37 := Pwr
+    if Period == 38
+        Pwr_38 := Pwr
+    if Period == 39
+        Pwr_39 := Pwr
+    if Period == 40
+        Pwr_40 := Pwr
+    if Period == 41
+        Pwr_41 := Pwr
+    if Period == 42
+        Pwr_42 := Pwr
+    if Period == 43
+        Pwr_43 := Pwr
+    if Period == 44
+        Pwr_44 := Pwr
+    if Period == 45
+        Pwr_45 := Pwr
+    if Period == 46
+        Pwr_46 := Pwr
+    if Period == 47
+        Pwr_47 := Pwr
+    if Period == 48
+        Pwr_48 := Pwr
+    if Period == 49
+        Pwr_49 := Pwr
+    if Period == 50
+        Pwr_50 := Pwr
+
+//------------------------------------------------
+//Normalize Power Levels and Convert to Decibels
+//------------------------------------------------
+DBOfInterrest=3.0
+LimitDBMax=40.0
+MaxDB = 0.0
+for Period = 8 to 50 
+    Pwr = 0.0
+    if Period == 8
+        Pwr := Pwr_8
+    if Period == 9
+        Pwr := Pwr_9
+    if Period == 10
+        Pwr := Pwr_10
+    if Period == 11
+        Pwr := Pwr_11
+    if Period == 12
+        Pwr := Pwr_12
+    if Period == 13
+        Pwr := Pwr_13
+    if Period == 14
+        Pwr := Pwr_14
+    if Period == 15
+        Pwr := Pwr_15
+    if Period == 16
+        Pwr := Pwr_16
+    if Period == 17
+        Pwr := Pwr_17
+    if Period == 18
+        Pwr := Pwr_18
+    if Period == 19
+        Pwr := Pwr_19
+    if Period == 20
+        Pwr := Pwr_20
+    if Period == 21
+        Pwr := Pwr_21
+    if Period == 22
+        Pwr := Pwr_22
+    if Period == 23
+        Pwr := Pwr_23
+    if Period == 24
+        Pwr := Pwr_24
+    if Period == 25
+        Pwr := Pwr_25
+    if Period == 26
+        Pwr := Pwr_26
+    if Period == 27
+        Pwr := Pwr_27
+    if Period == 28
+        Pwr := Pwr_28
+    if Period == 29
+        Pwr := Pwr_29
+    if Period == 30
+        Pwr := Pwr_30
+    if Period == 31
+        Pwr := Pwr_31
+    if Period == 32
+        Pwr := Pwr_32
+    if Period == 33
+        Pwr := Pwr_33
+    if Period == 34
+        Pwr := Pwr_34
+    if Period == 35
+        Pwr := Pwr_35
+    if Period == 36
+        Pwr := Pwr_36
+    if Period == 37
+        Pwr := Pwr_37
+    if Period == 38
+        Pwr := Pwr_38
+    if Period == 39
+        Pwr := Pwr_39
+    if Period == 40
+        Pwr := Pwr_40
+    if Period == 41
+        Pwr := Pwr_41
+    if Period == 42
+        Pwr := Pwr_42
+    if Period == 43
+        Pwr := Pwr_43
+    if Period == 44
+        Pwr := Pwr_44
+    if Period == 45
+        Pwr := Pwr_45
+    if Period == 46
+        Pwr := Pwr_46
+    if Period == 47
+        Pwr := Pwr_47
+    if Period == 48
+        Pwr := Pwr_48
+    if Period == 49
+        Pwr := Pwr_49
+    if Period == 50
+        Pwr := Pwr_50
+    DB = 0.0
+    if MaxPwr > 0 and Pwr > 0 
+        DB := -10*log(.01 / (1 -.99*Pwr / MaxPwr))/log(10) // Cf. MUSIC algo for resolution
+    if DB > LimitDBMax 
+        DB :=LimitDBMax
+    if DB > MaxDB //Find Maximum Power Level for Normalization
+        MaxDB := DB
+    //Find Dominant Cycle using CG algorithm
+    if DB < DBOfInterrest
+        Num := Num + Period*(DBOfInterrest - DB)
+        Denom := Denom + (DBOfInterrest - DB)
+    if Period == 8
+        DB_8 := DB
+    if Period == 9
+        DB_9 := DB
+    if Period == 10
+        DB_10 := DB
+    if Period == 11
+        DB_11 := DB
+    if Period == 12
+        DB_12 := DB
+    if Period == 13
+        DB_13 := DB
+    if Period == 14
+        DB_14 := DB
+    if Period == 15
+        DB_15 := DB
+    if Period == 16
+        DB_16 := DB
+    if Period == 17
+        DB_17 := DB
+    if Period == 18
+        DB_18 := DB
+    if Period == 19
+        DB_19 := DB
+    if Period == 20
+        DB_20 := DB
+    if Period == 21
+        DB_21 := DB
+    if Period == 22
+        DB_22 := DB
+    if Period == 23
+        DB_23 := DB
+    if Period == 24
+        DB_24 := DB
+    if Period == 25
+        DB_25 := DB
+    if Period == 26
+        DB_26 := DB
+    if Period == 27
+        DB_27 := DB
+    if Period == 28
+        DB_28 := DB
+    if Period == 29
+        DB_29 := DB
+    if Period == 30
+        DB_30 := DB
+    if Period == 31
+        DB_31 := DB
+    if Period == 32
+        DB_32 := DB
+    if Period == 33
+        DB_33 := DB
+    if Period == 34
+        DB_34 := DB
+    if Period == 35
+        DB_35 := DB
+    if Period == 36
+        DB_36 := DB
+    if Period == 37
+        DB_37 := DB
+    if Period == 38
+        DB_38 := DB
+    if Period == 39
+        DB_39 := DB
+    if Period == 40
+        DB_40 := DB
+    if Period == 41
+        DB_41 := DB
+    if Period == 42
+        DB_42 := DB
+    if Period == 43
+        DB_43 := DB
+    if Period == 44
+        DB_44 := DB
+    if Period == 45
+        DB_45 := DB
+    if Period == 46
+        DB_46 := DB
+    if Period == 47
+        DB_47 := DB
+    if Period == 48
+        DB_48 := DB
+    if Period == 49
+        DB_49 := DB
+    if Period == 50
+        DB_50 := DB
+        
+setColor(idx,min, max) =>
+    mid = 10
+    if idx > mid
+        steps = (max - mid)/13
+        col= idx > 13*steps+mid ? #FF0000 : idx > 12*steps+mid ? #EA0015 : idx > 11*steps+mid ? #DA002B : idx > 10*steps+mid ? #BF0040 : idx > 9*steps+mid ? #AA0055 : idx > 8*steps+mid ? #95006A : idx > 7*steps+mid ? #800080 : idx > 6*steps+mid ? #6A0095 : idx > 5*steps+mid ? #5500aa : idx > 4*steps+mid ? #4000BF : idx > 3*steps+mid ? #2B00D4 : idx > 2*steps+mid ? #1500EA : #0000FF  
+    else
+        steps = ( mid - min)/13
+        col= idx > 13*steps+min ? #0000FF : idx > 12*steps+min ? #0015FF : idx > 11*steps+min ? #002BFF : idx > 10*steps+min ? #0040FF : idx > 9*steps+min ? #0055FF : idx > 8*steps+min ? #006AFF : idx > 7*steps+min ? #0080FF : idx > 6*steps+min ? #0095FF : idx > 5*steps+min ? #00AAFF : idx > 4*steps+min ? #00BFFF : idx > 3*steps+min ? #00D4FF : idx > 2*steps+min ? #00EAFF : #00FFFF  
+
+useInternalMaxDb=input(true)
+MaximumDbHiglightt=input(30)
+MinimumDbHiglightt=input(3)
+maxDb=useInternalMaxDb?MaxDB:MaximumDbHiglightt
+minDb=MinimumDbHiglightt
+
+//-------------------------------------------------------------------------------------
+// TV limitation of 64 plots???
+// plot(8, "DB_8", color=setColor(DB_8, minDb,maxDb), linewidth=4)
+// plot(9, "DB_9", color=setColor(DB_9, minDb,maxDb), linewidth=4)
+plot(10, "DB_10", color=setColor(DB_10, minDb,maxDb), linewidth=4)
+plot(11, "DB_11", color=setColor(DB_11, minDb,maxDb), linewidth=4)
+plot(12, "DB_12", color=setColor(DB_12, minDb,maxDb), linewidth=4)
+plot(13, "DB_13", color=setColor(DB_13, minDb,maxDb), linewidth=4)
+plot(14, "DB_14", color=setColor(DB_14, minDb,maxDb), linewidth=4)
+plot(15, "DB_15", color=setColor(DB_15, minDb,maxDb), linewidth=4)
+plot(16, "DB_16", color=setColor(DB_16, minDb,maxDb), linewidth=4)
+plot(17, "DB_17", color=setColor(DB_17, minDb,maxDb), linewidth=4)
+plot(18, "DB_18", color=setColor(DB_18, minDb,maxDb), linewidth=4)
+plot(19, "DB_19", color=setColor(DB_19, minDb,maxDb), linewidth=4)
+plot(20, "DB_20", color=setColor(DB_20, minDb,maxDb), linewidth=4)
+plot(21, "DB_21", color=setColor(DB_21, minDb,maxDb), linewidth=4)
+plot(22, "DB_22", color=setColor(DB_22, minDb,maxDb), linewidth=4)
+plot(23, "DB_23", color=setColor(DB_23, minDb,maxDb), linewidth=4)
+plot(24, "DB_24", color=setColor(DB_24, minDb,maxDb), linewidth=4)
+plot(25, "DB_25", color=setColor(DB_25, minDb,maxDb), linewidth=4)
+plot(26, "DB_26", color=setColor(DB_26, minDb,maxDb), linewidth=4)
+plot(27, "DB_27", color=setColor(DB_27, minDb,maxDb), linewidth=4)
+plot(28, "DB_28", color=setColor(DB_28, minDb,maxDb), linewidth=4)
+plot(29, "DB_29", color=setColor(DB_29, minDb,maxDb), linewidth=4)
+plot(30, "DB_30", color=setColor(DB_30, minDb,maxDb), linewidth=4)
+plot(31, "DB_31", color=setColor(DB_31, minDb,maxDb), linewidth=4)
+plot(32, "DB_32", color=setColor(DB_32, minDb,maxDb), linewidth=4)
+plot(33, "DB_33", color=setColor(DB_33, minDb,maxDb), linewidth=4)
+plot(34, "DB_34", color=setColor(DB_34, minDb,maxDb), linewidth=4)
+plot(35, "DB_35", color=setColor(DB_35, minDb,maxDb), linewidth=4)
+plot(36, "DB_36", color=setColor(DB_36, minDb,maxDb), linewidth=4)
+plot(37, "DB_37", color=setColor(DB_37, minDb,maxDb), linewidth=4)
+plot(38, "DB_38", color=setColor(DB_38, minDb,maxDb), linewidth=4)
+plot(39, "DB_39", color=setColor(DB_39, minDb,maxDb), linewidth=4)
+plot(40, "DB_40", color=setColor(DB_40, minDb,maxDb), linewidth=4)
+// plot(41, "DB_41", color=setColor(DB_41, minDb,maxDb), linewidth=4)
+// plot(42, "DB_42", color=setColor(DB_42, minDb,maxDb), linewidth=4)
+// plot(43, "DB_43", color=setColor(DB_43, minDb,maxDb), linewidth=4)
+// plot(44, "DB_44", color=setColor(DB_44, minDb,maxDb), linewidth=4)
+// plot(45, "DB_45", color=setColor(DB_45, minDb,maxDb), linewidth=4)
+// plot(46, "DB_46", color=setColor(DB_46, minDb,maxDb), linewidth=4)
+// plot(47, "DB_47", color=setColor(DB_47, minDb,maxDb), linewidth=4)
+// plot(48, "DB_48", color=setColor(DB_48, minDb,maxDb), linewidth=4)
+// plot(49, "DB_49", color=setColor(DB_49, minDb,maxDb), linewidth=4)
+// plot(50, "DB_50", color=setColor(DB_50, minDb,maxDb), linewidth=4)
+
+//-------------------------------------------------------------------------------------
+// Find dominant Cycle based on Center of Gravity
+if Denom != 0 
+    DominantCycle := Num/Denom
+plot(ShowDC?DominantCycle:na, title="DC", color=aqua, linewidth=3)

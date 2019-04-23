@@ -1,0 +1,46 @@
+//@version=3
+// Ehlers Super Passband Filter script, based on original work done by Alex Orekhov (everget)
+study("John Ehlers Super Passband Filter", shorttitle="Super Passband")
+
+fastLength = input(title="Fast Length", type=integer, minval=1, defval=40)
+slowLength = input(title="Slow Length", type=integer, minval=1, defval=60)
+src = input(title="Source", type=source, defval=hl2)
+showsignals = input(title="Show Bug/Sell Signals", type=bool, defval=true)
+
+passband(src, fastLength, slowLength) =>
+    a1 = 5 / fastLength
+    a2 = 5 / slowLength
+    
+    espf = 0.0
+    espf := (a1 - a2) * src +
+         (a2 * (1 - a1) - a1 * (1 - a2)) * nz(src[1]) +
+         ((1 - a1) + (1 - a2)) * nz(espf[1]) -
+         (1 - a1) * (1 - a2) * nz(espf[2])
+
+pb = passband(src, fastLength, slowLength)
+
+// Compute Root Mean Square
+rms = sqrt(sum(pb * pb, 50) / 50)
+
+spbColor = pb > rms ? #0ebb23 : pb < -rms ? red : #674ea7
+
+plot(rms, title="+RMS", color=#f6b26b, transp=0)
+plot(pb, title="Passband", linewidth=2, color=spbColor, transp=0)
+plot(-rms, title="-RMS", color=#f6b26b, transp=0)
+
+hline(0, title="Zero Level", linestyle=dotted, color=#989898)
+
+// plot buy/sell signal
+// use curvature information to filter out some false positives
+mm1 = change(change(pb, 1), 1)
+mm2 = change(change(pb, 2), 2)
+
+buysignals = showsignals and crossover(pb, -rms) and mm1 > 0 and mm2 > 0
+sellsignals = showsignals and crossunder(pb, rms) and mm1 < 0 and mm2 < 0
+
+plot(buysignals ? -rms[1]*1.2: na, style=circles, color=green, linewidth=3, title="Buy Signal")
+plot(sellsignals ? rms[1]*1.2: na, style=circles, color=red, linewidth=3, title="Sell Signal")
+
+// add alter conditions 
+alertcondition(buysignals, title="Buy-Signal", message="Super Passband has crossed over bottom line generated BUY signal")
+alertcondition(sellsignals, title="Sell-Signal", message="Super Passband has crossed down the top line generated SELL signal")

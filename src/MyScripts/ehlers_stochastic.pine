@@ -1,0 +1,89 @@
+//@version=3
+// Original code developed by krypt
+study(title="John Ehlers Smoothed Stochastic", shorttitle="Smoothed Stochastic", precision=1)
+
+smoothK = input(10, minval=1, title="K")
+smoothD = input(3, minval=1, title="D")
+lengthStoch = input(14, minval=1, title="Stochastic Length")
+showsignals = input(true, title="Buy/Sell Signals")
+src = input(close, type=source, title="Source")
+
+PI = 3.14159265359
+
+drop1st(src) =>
+    x = na
+    x := na(src[1]) ? na : src
+
+xlowest(src, len) =>
+    x = src
+    for i = 1 to len - 1
+        v = src[i]
+        if (na(v))
+            break
+        x := min(x, v)
+    x
+
+xhighest(src, len) =>
+    x = src
+    for i = 1 to len - 1
+        v = src[i]
+        if (na(v))
+            break
+        x := max(x, v)
+    x
+
+xstoch(c, h, l, len) =>
+    xlow = xlowest(l, len)
+    xhigh = xhighest(h, len) 
+    100 * (c - xlow) / (xhigh - xlow)
+
+Stochastic(c, h, l, length) =>
+    rawsig = xstoch(c, h, l, length)
+    min(max(rawsig, 0), 100)
+
+EhlersSuperSmoother(src, length) =>
+	arg = 1.414 * PI / length
+	a1 = exp(-arg)
+	b1 = 2 * a1 * cos(arg)
+	c2 = b1
+	c3 = -a1 * a1
+	c1 = 1 - c2 - c3
+
+	filt = 0.0
+	filt := c1 * (src + src[1]) / 2 + c2 * nz(filt[1]) + c3 * nz(filt[2])
+
+// 
+ob = 80
+os = 20
+midpoint = 50
+
+xclose = log(drop1st(close))
+xhigh = log(drop1st(high))
+xlow = log(drop1st(low))
+
+rawsig = Stochastic(xclose, xhigh, xlow, lengthStoch)
+sig = EhlersSuperSmoother(rawsig, smoothK)
+ma = sma(sig, smoothD)
+
+plot(sig, color=blue, title="K")
+plot(ma, color=red, title="D")
+lineOB = hline(ob, title="Upper Band")
+lineOS = hline(os, title="Lower Band")
+fill(lineOB, lineOS, color=purple, title="Background")
+
+// Buy/Sell Signals
+// use curvature information to filter out some false positives
+mm1 = change(change(ma, 1), 1)
+mm2 = change(change(ma, 2), 2)
+ms1 = change(change(sig, 1), 1)
+ms2 = change(change(sig, 2), 2)
+
+sellsignals = showsignals and (mm1 + ms1 < 0 and mm2 + ms2 < 0) and crossunder(sig, ma) and sig[1] > midpoint
+buysignals = showsignals and (mm1 + ms1 > 0 and mm2 + ms2 > 0) and crossover(sig, ma) and sig[1] < midpoint
+
+plot(buysignals ? sig[1] - 4: na, style=circles, color=green, linewidth=3, title="Buy Signal")
+plot(sellsignals ? sig[1] + 4: na, style=circles, color=red, linewidth=3, title="Sell Signal")
+
+// add alter conditions 
+alertcondition(buysignals, title="Buy-Signal", message="Stochastic has valleyed and generated BUY signal")
+alertcondition(sellsignals, title="Sell-Signal", message="Stochastic has peaked and generated SELL signal")

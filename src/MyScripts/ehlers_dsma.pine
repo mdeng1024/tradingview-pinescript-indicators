@@ -1,0 +1,75 @@
+//@version=3
+//Deviation Scaled Moving Average by John Ehlers, based on code from MarcoValente
+// http://technical.traders.com/content/TTlink.asp?mo=07&yr=2018
+// version: 1.0.0
+study("John Ehlers' Deviation Scaled Moving Average ", shorttitle = "DSMA", overlay=true)
+
+src = input(title="Source", type=source, defval=close)
+fastPeriod = input(title="FastPeriod", type=integer, defval=40)
+slowPeriod = input(title="SlowPeriod", type=integer, defval=100)
+sign = input(true, title="Show Trade Signal")
+
+// logic begins
+PI = 3.1415926
+EhlersDSMA(src, Period) =>
+    // prepare super smoother variables
+    a1 = exp( -1.414 * PI / ( 0.5 * Period ) )
+    b1 = 2 * a1 * cos( 1.414 * PI / ( 0.5 * Period ) )
+    c2 = b1
+    c3 = -a1 * a1
+    c1 = 1 - c2 - c3
+
+    //Produce Nominal zero mean with zeros in the transfer response at
+    //DC and Nyquist with no spectral distortion
+    //Nominally whitens the spectrum because of 6 dB per octave rolloff
+    Zeros = src - src[2]
+
+    // SuperSmoother Filter 
+    Filt = 0.0
+    Filt := c1*(Zeros + Zeros[1]) / 2 + c2*nz(Filt[1]) + c3*nz(Filt[2])
+
+    // Compute Standard Deviation 
+    // RMS = stdev(Filt, Period)
+    RM = sum( Filt * Filt, Period ) 
+    RMS = sqrt( RM / Period ) 
+
+    // Rescale Filt in terms of Standard Deviations 
+    ScaledFilt = Filt / RMS
+
+    alpha1 = abs( ScaledFilt ) * 5 / Period
+    DSMA = 0.0
+    DSMA := alpha1 * src + (1 - alpha1) * nz(DSMA[1])
+
+slowDSMA = EhlersDSMA(src, slowPeriod)
+fastDSMA = EhlersDSMA(src, fastPeriod)
+
+// plot DSMAs
+plot(fastDSMA, color=blue )
+plot(slowDSMA, color=red )
+
+// plot reference SMA
+plot(sma(src, slowPeriod), color=red, linewidth=2, title="SMA")
+
+// plot range band (fixed Bollinger)
+ma = sma(src, 20)
+dev = stdev(src, 20)
+up = ma + 2 * dev
+dn = ma - 2 * dev
+upPlot = plot(up, color=#128484, title="BBand-Up")
+lowPlot = plot(dn, color=#128484, title="BBand-Low")
+fill(upPlot, lowPlot, color=#128484, transp=95)
+
+// plot buy/sell signal
+crossOver = sign? crossover(fastDSMA, slowDSMA): false
+crossUnder = sign? crossunder(fastDSMA, slowDSMA): false
+
+// add alter conditions 
+alertcondition(crossOver, title="Buy-Signal", message="fast DSMA crossed over slow DSMA generated BUY signal")
+alertcondition(crossUnder, title="Sell-Signal", message="fast DSMA crossed under slow DSMA generated SELL signal")
+
+// finding the lowest/highest point to plot the buy/sell indicator
+lowPoint = crossOver? (dn <= low ? dn - 0.2 * dev : low - 0.2 * dev): 0.0
+highPoint = crossUnder? (up >= high ? up + 0.2 * dev: high + 0.2 * dev): 0.0
+
+plotshape(crossUnder? highPoint : na, color=red, style=shape.labeldown, location=location.absolute, text="Sell", textcolor=white)
+plotshape(crossOver? lowPoint : na, color=lime, style=shape.labelup, location=location.absolute, text="Buy", textcolor=black)

@@ -1,0 +1,46 @@
+//@version=3
+// Money Flow Index
+study("Average Directional Index", shorttitle="ADX")
+
+length = input(title="Length", type=integer, minval=1, defval=14)
+trendValue = input(title="Trend Starts", type=integer, minval=20, defval=25, maxval=60)
+
+pi = 3.14159
+// prepare 2-pole super smooth constants, using 8 bar to smooth out the data
+a1 = exp(-1.414 * pi / 8)
+b1 = 2 * a1 * cos(1.414 * pi / 8)
+c2 = b1
+c3 = -a1 * a1
+c1 = 1 - c2 - c3
+
+// calculate adx
+// implementation taken from H48yeyRa
+// https://www.tradingview.com/script/H48yeyRa-Adaptive-ATR-ADX-Trend-V2/
+hR = change(high)
+lR = -change(low)
+
+dmPos = hR > lR ? max(hR, 0) : 0
+dmNeg = lR > hR ? max(lR, 0) : 0
+
+sTR = tr
+sTR := nz(sTR[1]) - nz(sTR[1]) / length + tr
+sDMPos = tr
+sDMPos := nz(sDMPos[1]) - nz(sDMPos[1]) / length + dmPos
+sDMNeg = tr
+sDMNeg := nz(sDMNeg[1]) - nz(sDMNeg[1]) / length + dmNeg
+
+DIP = sDMPos / sTR * 100
+DIN = sDMNeg / sTR * 100
+DX = abs(DIP - DIN) / (DIP + DIN) * 100
+adx = sma(DX, length)
+
+adx := c1 * adx + c2 * nz(adx[1]) + c3 * nz(adx[2])
+
+// plot level lines
+hline(trendValue, title="Trending", linestyle=dotted, color=gray)
+hline(20, title="Flat", linestyle=dotted, color=gray)
+
+// plot ADX
+col = adx >= trendValue? green: blue
+plot(adx, color=col, title="ADX")
+

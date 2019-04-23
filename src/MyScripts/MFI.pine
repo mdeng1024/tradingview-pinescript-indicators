@@ -1,0 +1,35 @@
+//@version=3
+// Money Flow Index
+study("Money Flow Index", shorttitle="MFI")
+
+src = input(title="Source", type=source, defval=close)
+length = input(title="Length", type=integer, minval=1, defval=14)
+
+pi = 3.14159
+// prepare 2-pole super smooth constants, using 8 bar to smooth out the data
+a1 = exp(-1.414 * pi / 8)
+b1 = 2 * a1 * cos(1.414 * pi / 8)
+c2 = b1
+c3 = -a1 * a1
+c1 = 1 - c2 - c3
+
+// calculate Money Flow
+mf = src * volume
+
+nmf = 0.0
+pmf = 0.0
+for i = 0 to length - 1
+    nmf := src[i] < src[i+1] ? nmf + mf[i] : nmf
+    pmf := src[i] > src[i+1] ? pmf + mf[i] : pmf
+
+mfi = nmf > 0? 100 * (1.0 - 1.0 / (1.0 + pmf / nmf)) : 100
+mfi := c1 * mfi + c2 * nz(mfi[1]) + c3 * nz(mfi[2])
+
+// plot level lines
+hline(80, title="Overbought", linestyle=dotted, color=gray)
+hline(20, title="Oversold", linestyle=dotted, color=gray)
+
+// plot MFI
+col = mfi > 80? red : (mfi < 20? green : blue)
+plot(mfi, color=col, title="MFI")
+

@@ -1,0 +1,54 @@
+//@version=3
+// Johne Ehlers' LowPass filter
+study("John Ehlers' LowPass", shorttitle="Ehlers' LowPass", overlay=true)
+
+src = input(close, title="Source")
+len = input(50, title="Length")
+sign = input(true, title="Show Trade Signal")
+
+// LowPass starts
+a = 2/(1+len)
+lp = 0.0
+lp := (a-0.25*a*a)*src
+     + 0.5*a*a*src[1]
+     - (a-0.75*a*a)*src[2]
+     + 2*(1-a)*nz(lp[1])
+     - (1-a)*(1-a)*nz(lp[2])
+lag = 0.0
+lag := 2.0*lp - nz(lp[2])
+
+plot(lp, color=red, linewidth=1, title="LP")
+plot(lag, color=blue, linewidth=1, title="LP-Trigger")
+
+// plot reference SMA
+plot(sma(src, len), color=red, linewidth=2, title="SMA")
+
+// plot range band (fixed Bollinger)
+ma = sma(src, 20)
+dev = stdev(src, 20)
+up = ma + 2 * dev
+dn = ma - 2 * dev
+upPlot = plot(up, color=#128484, title="BBand-Up")
+lowPlot = plot(dn, color=#128484, title="BBand-Low")
+fill(upPlot, lowPlot, color=#128484, transp=95)
+
+// plot buy/sell signal
+peak(src) =>
+    src[2] < src[1] and src[1] > src
+
+valey(src) =>
+    src[2] > src[1] and src[1] < src
+
+peaks = sign? peak(lp): false
+valleys = sign? valey(lp): false
+
+// add alter conditions 
+alertcondition(peaks, title="Buy-Signal", message="Lowpass has peaked and generated BUY signal")
+alertcondition(valleys, title="Sell-Signal", message="Lowpass has valleyed and generated SELL signal")
+
+// finding the lowest/highest point to plot the buy/sell indicator
+lowPoint = valleys? (dn <= low ? dn - 0.2 * dev : low - 0.2 * dev): 0.0
+highPoint = peaks? (up >= high ? up + 0.2 * dev: high + 0.2 * dev): 0.0
+
+plotshape(peaks? highPoint : na, color=red, style=shape.labeldown, location=location.absolute, text="Sell", textcolor=white)
+plotshape(valleys? lowPoint : na, color=lime, style=shape.labelup, location=location.absolute, text="Buy", textcolor=black)

@@ -1,0 +1,51 @@
+//@version=3
+// Copyright (c) 2018-present, Alex Orekhov (everget)
+// Schaff Trend Cycle script may be freely distributed under the MIT license.
+// Source: https://www.tradingview.com/script/UkWZRgLG-Schaff-Trend-Cycle/
+study("Schaff Trend Cycle", shorttitle="STC")
+
+fastLength = input(title="MACD Fast Length", type=integer, defval=23)
+slowLength = input(title="MACD Slow Length", type=integer, defval=200)
+cycleLength = input(title="Cycle Length", type=integer, defval=10)
+src = input(title="Source", type=source, defval=close)
+highlightBreakouts = input(title="Highlight Breakouts ?", type=bool, defval=true)
+
+macd = ema(src, fastLength) - ema(src, slowLength)
+
+k = nz(fixnan(stoch(macd, macd, macd, cycleLength)))
+d = ema(k, cycleLength/2)
+
+
+kd = nz(fixnan(stoch(d, d, d, cycleLength)))
+stc = ema(kd, cycleLength/2)
+stc := 	stc > 100 ? 100 : stc < 0 ? 0 : stc
+
+// value = 2 * (stc - 0.5)
+// invStc = (exp(2 * 3 * value) - 1) / (exp(2 * 3 * value) + 1)
+// lag = 0.9 * invStc[1]
+
+// plot(invStc, color=green, transp=0, title="stc")
+// plot(lag, color=red, transp=0, title="stc-trigget")
+
+stcColor = not highlightBreakouts ? (stc > stc[1] ? green : red) : #ff3013
+stcPlot = plot(stc, title="STC", color=stcColor, transp=0)
+
+upper = 75
+lower = 25
+
+transparent = color(white, 100)
+
+upperLevel = plot(upper, title="Upper", color=gray)
+hline(50, title="Middle", linestyle=dotted)
+lowerLevel = plot(lower, title="Lower", color=gray)
+
+fill(upperLevel, lowerLevel, color=#f9cb9c, transp=90)
+
+upperFillColor = stc > upper and highlightBreakouts ? green : transparent
+lowerFillColor = stc < lower and highlightBreakouts ? red : transparent
+
+fill(upperLevel, stcPlot, color=upperFillColor, transp=80)
+fill(lowerLevel, stcPlot, color=lowerFillColor, transp=80)
+
+plotshape(crossover(stc, lower) ? lower : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny, color=green, transp=0)
+plotshape(crossunder(stc, upper) ? upper : na, title="Crossunder", location=location.absolute, style=shape.circle, size=size.tiny, color=red, transp=0)

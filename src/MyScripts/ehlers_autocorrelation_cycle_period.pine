@@ -1,0 +1,91 @@
+//@version=3
+// John Ehlers' Autocorrelation Cycle Period as described in his book 
+// unfortunately current version of pine script doesn't support array or write to series etc. 
+// so this script is stuck until next version of pine script 
+// or using a urgly work around by declaring multiple variables for each variable inside the array...
+study("Ehlers Autocorrelation Cycle Period", shorttitle="EACP")
+
+length = input(title="Length", type=integer, minval=1, defval=14)
+src = input(title="Source", type=source, defval=hl2)
+avgLength = input(title="AvgLength", type=input, defval=3)
+
+pi = 3.14159
+// highpass filter cyclic components whose period are shorter than 48 bars
+alpha1 = (cos(0.707 * 2 * pi / 48) + sin(0.707 * 2 * pi / 48) - 1) / cos(0.707 * 2 * pi / 48)
+hp = 0.0
+hp := (1 - alpha1 / 2) * (1 - alpha1 / 2) * (src - 2 * src[1] + src[2])
+     + 2 * (1 - alpha1) * nz(hp[1])
+     - (1 - alpha1) * (1 - alpha1) * nz(hp[2])
+
+// smooth with a super smoother filter
+a1 = exp(-1.414 * pi / 10)
+b1 = 2*a1*cos(1.414 * pi / 10) 
+c2 = b1
+c3 = -a1*a1
+c1 = 1 - c2 - c3
+
+filt = 0.0
+filt := c1*(hp + nz(hp[1])) / 2 + c2* nz(filt[1]) + c3* nz(filt[2])
+
+//Pearson correlation for each value of lag 
+corr = 0.0
+for lag = 0 to 48 
+    //Set the averaging length as M 
+    M = avgLength == 0 ? lag: avgLength
+    Sx = 0
+    Sy = 0
+    Sxx = 0
+    Syy = 0
+    Sxy = 0
+    for count = 0 to M - 1 
+        X = filt[count]
+        Y = filt[lag + count]
+        Sx := Sx + X 
+        Sy := Sy + Y
+        Sxx := Sxx + X*X
+        Sxy := Sxy + X*Y
+        Syy := Syy + Y*Y
+
+    if (M*Sxx - Sx*Sx)*(M*Syy - Sy*Sy) > 0 
+        corr[lag] := (M*Sxy - Sx*Sy)/sqrt((M*Sxx - Sx*Sx)*(M*Syy - Sy*Sy))
+
+sqSum = 0.0
+for period = 10 to 48 
+    cosinePart = 0.0 
+    sinePart = 0.0
+    for N = 3 to 48 
+        cosinePart[period] := cosinePart[period] + corr[N]*cos(2 * pi * N / period)
+        sinePart[Period] := sinePart[Period] + corr[N]*sin(2 * pi *N / period)
+    sqSum[period] := cosinePart[period]*cosinePart[period] + sinePart[period]*sinePart[Period]
+
+R1 = 0.0
+R2 = 0.0
+for period = 10 to 48 
+    R2[period] := R1[period]
+    R1[period] := .2*sqSum[period]*sqSum[period] + .8*R2[period]
+
+//Find Maximum Power Level for Normalization 
+MaxPwr = 0.0
+MaxPwr := .991*MaxPwr
+for period = 10 to 48 
+    if R1[period] > MaxPwr 
+        MaxPwr := R1[period]
+
+Pwr = 0.0
+for period = 3 to 48
+    Pwr[period] := R1[period] / MaxPwr
+
+//Compute the dominant cycle using the CG of the spectrum 
+Spx = 0.0
+Sp = 0.0
+for period = 10 to 48 
+    if Pwr[period] >= .5 
+        Spx := Spx + period*Pwr[period] 
+        Sp := Sp + Pwr[period]
+
+DominantCycle = 0
+DominantCycle := Sp != 0 ? round(Spx / Sp) : 48
+DominantCycle := DominantCycle < 10 ? 10 : DominantCycle > 48 ? 48 : DominantCycle
+
+// now plot the cycle period result
+plot(DominantCycle, color=blue, linewidth=1, title="CyclePeriod")
