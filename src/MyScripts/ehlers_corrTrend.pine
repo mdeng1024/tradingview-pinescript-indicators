@@ -1,0 +1,46 @@
+//@version=4
+// John Ehlers Correlation as Trend indicator with trade buy/sell signal suggestion
+// version: 1.0.0
+study("John Ehlers Correlation Trend", shorttitle="CorrTrend")
+
+FastPeriod      = input(20, "FastPeriod")
+SlowPeriod      = input(40, "SlowPeriod")
+showsignals     = input(title="Show Bug/Sell Signals", type=input.bool, defval=true)
+
+corrTrend(Length) =>
+    X = 0.0, Y=0.0, Sx = 0.0, Sy = 0.0, Sxx = 0.0, Sxy = 0.0, Syy = 0.0
+    for count = 0 to Length - 1
+        X     := close[count]
+        Y     := -count
+        Sx    := Sx + X
+        Sy    := Sy + Y
+        Sxx   := Sxx + X*X
+        Sxy   := Sxy + X*Y
+        Syy   := Syy + Y*Y
+    
+    Num = Length * Sxy - Sx * Sy
+    Denom = sqrt((Length*Sxx - Sx*Sx)*(Length*Syy - Sy*Sy))
+
+    Corr = iff(Num != 0, Num / Denom, 0)
+
+CorrTrendFast = corrTrend(FastPeriod)
+CorrTrendSlow = corrTrend(SlowPeriod)
+
+// plot trend line
+plot(CorrTrendFast, color=color.blue )
+plot(CorrTrendSlow, color=color.red )
+plot(0, "Sell Line", color=color.teal, style=plot.style_circles)
+plot(0.5, "Buy Line", color=color.teal, style=plot.style_circles)
+
+// buy/sell signal
+buySignal = showsignals and crossover(CorrTrendFast, 0.5)
+sellSignal = showsignals and crossunder(CorrTrendSlow, 0)
+
+// color the background of the chart with Buy/Sell indication
+backgroundColour = sellSignal ? color.red : buySignal ? color.green :	na
+bgcolor(color=backgroundColour, transp=80, title="Buy or Sell Coloring")
+
+// add alter conditions 
+alertcondition(buySignal, title="Buy-Signal", message="CorrTrend has crossed over 0.5 line generated BUY signal")
+alertcondition(sellSignal, title="Sell-Signal", message="CorrTrend has crossed down the Zero line generated SELL signal")
+
